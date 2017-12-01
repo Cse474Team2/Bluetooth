@@ -17,6 +17,18 @@ int main() {
   sendByte('$');
   sendByte('$');
   
+  char str[] = "SN,test123";
+  
+  // Print string
+  //for (int i = 0; i < sizeof(str); i++) {
+    //sendByte(str[i]);
+  //}
+  
+  // Exit config
+  sendByte('-');
+  sendByte('-');
+  sendByte('-');
+  
   while (true) {
     // Loop forever
   }
@@ -26,7 +38,7 @@ int main() {
 void initGpio() {
   SYSCTL_RCGC2_R |= 0x04;
   // Uart 0 for debug 
-  //SYSCTL_RCGC2_R |= 0x01;
+  SYSCTL_RCGC2_R |= 0x01;
 }
 
 // Initialise the UART
@@ -34,7 +46,7 @@ void initUart() {
   // Turn on Uart 1
   SYSCTL_RCGCUART_R |= 0x02;
   // Uart 0 for debug
-  //SYSCTL_RCGCUART_R |= 0x01;
+  SYSCTL_RCGCUART_R |= 0x01;
 
   // Uart 0 for debug
   // Setup port A
