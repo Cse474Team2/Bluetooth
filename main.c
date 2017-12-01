@@ -1,63 +1,78 @@
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "tm4c123gh6pm.h"
 
-void uartInit();
-void uartSendByte(uint8_t value);
+void initGpio();
+void initUart();
 
-void main() {
-  uartInit();
-  
-  uartSendByte('$');
-  uartSendByte('$');
-  uartSendByte('$');
-  
+void setUARTClock(uint8_t megaHertz, uint32_t baudRate);
+void sendByte(uint8_t byte);
+
+int main() {
+  initGpio();
+  initUart();
+
+  sendByte('$');
+  sendByte('$');
+  sendByte('$');
+
   while (true) {
-    // do nothing
-     uartSendByte('$');
+    // Loop forever
   }
 }
 
-void uartInit() {
-  SYSCTL_RCGCUART_R |= 1;
-  SYSCTL_RCGCGPIO_R |= 0x05;
-  
-  GPIO_PORTC_AFSEL_R |= (1 << 4) | (1 << 5);
-  GPIO_PORTA_AFSEL_R |= (1 << 1) | (1 << 0);
-  // TODO: check this!
-  GPIO_PORTC_PCTL_R |= 0x220000;
-  GPIO_PORTA_PCTL_R |= 0x11;
-  
-  GPIO_PORTC_DEN_R |= (1 << 4) | (1 << 5);
-  GPIO_PORTC_DEN_R |= (1 << 0) | (1 << 1);
-   
-  // Disable UART
-  UART1_CTL_R &= ~0x01;
-  UART0_CTL_R &= ~0x01;
-  
-  // BAUD RATE CALC
-  uint32_t megaHertz = 16;
-  float divider = (megaHertz * 1000000) / (float)(16 * 9600);
-  uint32_t whole = (uint32_t)divider;
-  uint32_t fraction = (uint32_t)((divider - whole) * 64 + 0.5);
-  
-  UART1_IBRD_R = whole;
-  UART1_FBRD_R = fraction;
-  
-  UART1_LCRH_R = (0x3 << 5);
-  
-  UART0_IBRD_R = 104;
-  UART0_FBRD_R = 11;
-  
-  UART0_LCRH_R = (0x3 << 5);
-  
-  UART1_CTL_R |= 0x01;
-  UART0_CTL_R |= 0x01;
+// Activates port f and e
+void initGpio() {
+  SYSCTL_RCGC2_R |= (0x04 | 0x01);
 }
 
-void uartSendByte(uint8_t value) {
-  while (UART0_FR_R & 0x02) {}
-  
-  UART0_DR_R = value;
+// Initialise the UART
+void initUart() {
+  // Turn on Uart 0 and 1
+  SYSCTL_RCGCUART_R |= 0x01;
+
+  // Setup port A
+  // Select alternate function for PA1 and PA0
+  //GPIO_PORTA_AFSEL_R |= 0x3;
+  //GPIO_PORTA_PCTL_R = 0x11;
+  // Set PA1 and PA0 as digital
+  //GPIO_PORTA_DEN_R |= 0x03;
+
+  // Setup port C
+  // Select alternate function for PC4 and PC5
+  GPIO_PORTC_AFSEL_R |= 0x30;
+  GPIO_PORTC_PCTL_R = 0x22000;
+  // Set PC4 and PC5 as digital
+  GPIO_PORTC_DEN_R |= 0x30;
+
+  setUARTClock(16, 9600);
 }
-  
+
+// Set the divider for UART to be at the given baud rate
+void setUARTClock(uint8_t megaHertz, uint32_t baudRate) {
+  // Disable UART while configuring
+  UART1_CTL_R &= ~0x01;
+
+  // Calculate the divisor needed for the baud rate
+  float divider = (megaHertz * 1000000) / (float)(16 * baudRate);
+  uint32_t whole = (uint32_t)divider;
+  uint32_t fraction = (uint32_t)((divider - whole) * 64 + 0.5);
+
+  // Set the integer and fractional part of the divisor
+  UART1_IBRD_R = whole;
+  UART1_FBRD_R = fraction;
+
+  // Set the packets to be 8 data bits, no parity, and 1 stop bit
+  UART1_LCRH_R = (0x3 << 5);
+
+  // Enable UART after config
+  UART1_CTL_R |= 0x01;
+}
+
+// Send a byte via UART
+void sendByte(uint8_t byte) {
+  // Wait for UART1 TX FIFO to be ready
+  while (UART1_FR_R & 0x20) {}
+  // Send byte
+  UART1_DR_R = byte;
+}
