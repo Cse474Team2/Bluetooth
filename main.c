@@ -12,25 +12,31 @@ int main() {
   initGpio();
   initUart();
 
+  // Enter config mode
   sendByte('$');
   sendByte('$');
   sendByte('$');
-
+  
   while (true) {
     // Loop forever
   }
 }
 
-// Activates port f and e
+// Activates port c and a
 void initGpio() {
-  SYSCTL_RCGC2_R |= (0x04 | 0x01);
+  SYSCTL_RCGC2_R |= 0x04;
+  // Uart 0 for debug 
+  //SYSCTL_RCGC2_R |= 0x01;
 }
 
 // Initialise the UART
-void initUart() {
-  // Turn on Uart 0 and 1
-  SYSCTL_RCGCUART_R |= 0x01;
+void initUart() {  
+  // Turn on Uart 1
+  SYSCTL_RCGCUART_R |= 0x02;
+  // Uart 0 for debug
+  //SYSCTL_RCGCUART_R |= 0x01;
 
+  // Uart 0 for debug
   // Setup port A
   // Select alternate function for PA1 and PA0
   //GPIO_PORTA_AFSEL_R |= 0x3;
@@ -41,11 +47,15 @@ void initUart() {
   // Setup port C
   // Select alternate function for PC4 and PC5
   GPIO_PORTC_AFSEL_R |= 0x30;
-  GPIO_PORTC_PCTL_R = 0x22000;
+  // DO NOT TOUCH THIS. YOU MAY KILL THE BOARD
+  GPIO_PORTC_PCTL_R &= ~0xFF0000;
+  GPIO_PORTC_PCTL_R |= 0x220000;
   // Set PC4 and PC5 as digital
   GPIO_PORTC_DEN_R |= 0x30;
 
-  setUARTClock(16, 9600);
+  setUARTClock(16, 115200);
+  // Uart 0 for debug
+  //setUARTClock(16, 9600);
 }
 
 // Set the divider for UART to be at the given baud rate
