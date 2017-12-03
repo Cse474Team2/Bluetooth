@@ -1,77 +1,76 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "tm4c123gh6pm.h"
+#include "bluetooth.h"
 
-void initGpio();
-void initUart();
+static void gpioInit();
+static void uart1Init();
 
-void setUARTClock(uint8_t megaHertz, uint32_t baudRate);
-void sendByte(uint8_t byte);
+static void uart1SetClock(uint8_t megaHertz, uint32_t baudRate);
+static void uart1SendByte(uint8_t byte);
 
-int main() {
-  initGpio();
-  initUart();
+/*int main() {
+  gpioInit();
+  uart1Init();
 
-  // Enter config mode
-  sendByte('$');
-  sendByte('$');
-  sendByte('$');
-  
-  char str[] = "SN,test123";
-  
-  // Print string
-  //for (int i = 0; i < sizeof(str); i++) {
-    //sendByte(str[i]);
-  //}
-  
-  // Exit config
-  sendByte('-');
-  sendByte('-');
-  sendByte('-');
-  
   while (true) {
-    // Loop forever
+    while (UART1_FR_R & 0x10) {}
+    uart1SendByte(UART1_DR_R);
+  }
+}*/
+
+// Initialises bluetooth communications
+void bluetoothInit() {
+  gpioInit();
+  uart1Init();
+}
+
+// Sends a string via bluetooth
+void bluetoothSendString(char* str, uint32_t size) {
+  // Size is used to avoid any mistakes with forgetting to end the string.
+  for (int i = 0; i < size; i++) {
+    uart1SendByte(str[i]);
   }
 }
 
+// Returns true if there is data available
+bool bluetoothCharAvailable() {
+  return !(UART1_FR_R & 0x10);
+}
+
+// Get next character from bluetooth connection
+char bluetoothGetChar() {
+  while (UART1_FR_R & 0x10) {}
+  return UART1_DR_R;
+}
+
 // Activates port c and a
-void initGpio() {
+static void gpioInit() {
   SYSCTL_RCGC2_R |= 0x04;
-  // Uart 0 for debug 
-  SYSCTL_RCGC2_R |= 0x01;
 }
 
 // Initialise the UART
-void initUart() {  
+static void uart1Init() {
   // Turn on Uart 1
   SYSCTL_RCGCUART_R |= 0x02;
-  // Uart 0 for debug
-  SYSCTL_RCGCUART_R |= 0x01;
-
-  // Uart 0 for debug
-  // Setup port A
-  // Select alternate function for PA1 and PA0
-  //GPIO_PORTA_AFSEL_R |= 0x3;
-  //GPIO_PORTA_PCTL_R = 0x11;
-  // Set PA1 and PA0 as digital
-  //GPIO_PORTA_DEN_R |= 0x03;
 
   // Setup port C
   // Select alternate function for PC4 and PC5
+  // DO NOT TOUCH THIS. YOU MAY KILL THE BOARD
   GPIO_PORTC_AFSEL_R |= 0x30;
   // DO NOT TOUCH THIS. YOU MAY KILL THE BOARD
   GPIO_PORTC_PCTL_R &= ~0xFF0000;
   GPIO_PORTC_PCTL_R |= 0x220000;
   // Set PC4 and PC5 as digital
+  // DO NOT TOUCH THIS. YOU MAY KILL THE BOARD
   GPIO_PORTC_DEN_R |= 0x30;
 
-  setUARTClock(16, 115200);
-  // Uart 0 for debug
-  //setUARTClock(16, 9600);
+  // Set Uart clock
+  uart1SetClock(16, 115200);
 }
 
 // Set the divider for UART to be at the given baud rate
-void setUARTClock(uint8_t megaHertz, uint32_t baudRate) {
+static void uart1SetClock(uint8_t megaHertz, uint32_t baudRate) {
   // Disable UART while configuring
   UART1_CTL_R &= ~0x01;
 
@@ -92,7 +91,7 @@ void setUARTClock(uint8_t megaHertz, uint32_t baudRate) {
 }
 
 // Send a byte via UART
-void sendByte(uint8_t byte) {
+static void uart1SendByte(uint8_t byte) {
   // Wait for UART1 TX FIFO to be ready
   while (UART1_FR_R & 0x20) {}
   // Send byte
