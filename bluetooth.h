@@ -1,6 +1,8 @@
 #ifndef BLUETOOTH_H
 #define BLUETOOTH_H
 
+#include <stdbool.h>
+
 // Initialises bluetooth communications
 void bluetoothInit();
 
