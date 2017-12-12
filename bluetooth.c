@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include "tiva.h"
 #include "bluetooth.h"
 
@@ -8,16 +9,6 @@ static void uart1Init();
 
 static void uart1SetClock(uint8_t megaHertz, uint32_t baudRate);
 static void uart1SendByte(uint8_t byte);
-
-/*int main() {
-  gpioInit();
-  uart1Init();
-
-  while (true) {
-    while (UART1_FR & 0x10) {}
-    uart1SendByte(UART1_DR);
-  }
-}*/
 
 // Initialises bluetooth communications
 void bluetoothInit() {
