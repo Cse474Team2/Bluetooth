@@ -1,6 +1,6 @@
 #include <stdbool.h>
 #include <stdint.h>
-#include "tm4c123gh6pm.h"
+#include "tiva.h"
 #include "bluetooth.h"
 
 static void gpioInit();
@@ -14,8 +14,8 @@ static void uart1SendByte(uint8_t byte);
   uart1Init();
 
   while (true) {
-    while (UART1_FR_R & 0x10) {}
-    uart1SendByte(UART1_DR_R);
+    while (UART1_FR & 0x10) {}
+    uart1SendByte(UART1_DR);
   }
 }*/
 
@@ -35,35 +35,35 @@ void bluetoothSendString(char* str, uint32_t size) {
 
 // Returns true if there is data available
 bool bluetoothCharAvailable() {
-  return !(UART1_FR_R & 0x10);
+  return !(UART1_FR & 0x10);
 }
 
 // Get next character from bluetooth connection
 char bluetoothGetChar() {
-  while (UART1_FR_R & 0x10) {}
-  return UART1_DR_R;
+  while (UART1_FR & 0x10) {}
+  return UART1_DR;
 }
 
 // Activates port c and a
 static void gpioInit() {
-  SYSCTL_RCGC2_R |= 0x04;
+  SYSCTL_RCGC2 |= 0x04;
 }
 
 // Initialise the UART
 static void uart1Init() {
   // Turn on Uart 1
-  SYSCTL_RCGCUART_R |= 0x02;
+  SYSCTL_RCGCUART |= 0x02;
 
   // Setup port C
   // Select alternate function for PC4 and PC5
   // DO NOT TOUCH THIS. YOU MAY KILL THE BOARD
-  GPIO_PORTC_AFSEL_R |= 0x30;
+  GPIO_PORTC_AFSEL |= 0x30;
   // DO NOT TOUCH THIS. YOU MAY KILL THE BOARD
-  GPIO_PORTC_PCTL_R &= ~0xFF0000;
-  GPIO_PORTC_PCTL_R |= 0x220000;
+  GPIO_PORTC_PCTL &= ~0xFF0000;
+  GPIO_PORTC_PCTL |= 0x220000;
   // Set PC4 and PC5 as digital
   // DO NOT TOUCH THIS. YOU MAY KILL THE BOARD
-  GPIO_PORTC_DEN_R |= 0x30;
+  GPIO_PORTC_DEN |= 0x30;
 
   // Set Uart clock
   uart1SetClock(16, 115200);
@@ -72,7 +72,7 @@ static void uart1Init() {
 // Set the divider for UART to be at the given baud rate
 static void uart1SetClock(uint8_t megaHertz, uint32_t baudRate) {
   // Disable UART while configuring
-  UART1_CTL_R &= ~0x01;
+  UART1_CTL &= ~0x01;
 
   // Calculate the divisor needed for the baud rate
   float divider = (megaHertz * 1000000) / (float)(16 * baudRate);
@@ -80,20 +80,20 @@ static void uart1SetClock(uint8_t megaHertz, uint32_t baudRate) {
   uint32_t fraction = (uint32_t)((divider - whole) * 64 + 0.5);
 
   // Set the integer and fractional part of the divisor
-  UART1_IBRD_R = whole;
-  UART1_FBRD_R = fraction;
+  UART1_IBRD = whole;
+  UART1_FBRD = fraction;
 
   // Set the packets to be 8 data bits, no parity, and 1 stop bit
-  UART1_LCRH_R = (0x3 << 5);
+  UART1_LCRH = (0x3 << 5);
 
   // Enable UART after config
-  UART1_CTL_R |= 0x01;
+  UART1_CTL |= 0x01;
 }
 
 // Send a byte via UART
 static void uart1SendByte(uint8_t byte) {
   // Wait for UART1 TX FIFO to be ready
-  while (UART1_FR_R & 0x20) {}
+  while (UART1_FR & 0x20) {}
   // Send byte
-  UART1_DR_R = byte;
+  UART1_DR = byte;
 }
